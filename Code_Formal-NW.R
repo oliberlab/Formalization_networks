@@ -16,10 +16,17 @@ cases2<-subset(cases,
               Q25_DK != "Yes" &
               Q26_DK != "Yes" &
               Q27_DK != "Yes" &
+              Q32_DK != "Yes" &
+              Q33_DK != "Yes" &
+              Q34_DK != "Yes" &
+              Q35_DK != "Yes" &
               Q39_DK != "Yes" &
               Q48_DK != "Yes" &
               Q49_DK != "Yes" &
-              Q50_DK != "Yes")
+              Q50_DK != "Yes" &
+              Q51.1_DK != "Yes" &
+              Q51.2_DK != "Yes" &
+              Q51.3_DK != "Yes")
 #Replace all values set to "Off" with "NA", then NA with 0.
 #Same procedure for "Yes", set to 5.
 cases2[cases2 == "Off"] <- NA
@@ -32,16 +39,27 @@ compute_score2 <- function(x){
   x <- as.numeric(as.character(x))
   x <- x/2
 }
-compute_score3 <- function(x){
+compute_score4 <- function(x){
   x <- as.numeric(as.character(x))
-  x <- x/3
+  x <- x/4
 }
 cases2 <- cases2 %>%
   mutate(., RUL = compute_score2(Q24_Middle) + compute_score2(Q25_Middle),
          ., CEN = as.numeric(as.character(Q39_Middle)),
-         ., DEC = as.numeric(as.character(Q27_Middle)),
+         ., TRA = as.numeric(as.character(Q27_Middle)),
          ., MON = as.numeric(as.character(Q50_Middle)),
          ., GOA = compute_score2(Q48_Middle) + compute_score2(Q49_Middle),
+         ., ACC = pmax(
+           as.numeric(as.character(Q51.1_Middle)), 
+           as.numeric(as.character(Q51.2_Middle)), 
+           as.numeric(as.character(Q51.3_Middle)),
+           as.numeric(as.character(Q51.1_End)), 
+           as.numeric(as.character(Q51.2_End)), 
+           as.numeric(as.character(Q51.3_End))),
+         ., CON = as.numeric(as.character(Q32_Middle)),
+         ., FOC = as.numeric(as.character(Q33_Middle)),
+         ., MIT = as.numeric(as.character(Q34_Middle)),
+         ., CRE = as.numeric(as.character(Q35_Middle)),
          ., LEG = compute_score2(Q58.1_Middle) + compute_score2(Q58.1_End),
          ., CAP = as.numeric(as.character(Q58.2_End)),
          ., SOC = as.numeric(as.character(Q58.3_End)),
@@ -49,8 +67,10 @@ cases2 <- cases2 %>%
            (compute_score2(Q57.1_Middle) + compute_score2(Q57.1_End)),
            (compute_score2(Q57.2_Middle) + compute_score2(Q57.2_End)),
            (compute_score2(Q57.3_Middle) + compute_score2(Q57.3_End))),
-         ., CHA = compute_score3(LEG) + compute_score3(CAP) + compute_score3(SOC))
-
+         ., CHA = compute_score4(LEG) + 
+           compute_score4(CAP) + 
+           compute_score4(SOC) +
+           compute_score4(EFF))
 #Calibrate using recode. 
 cases2_fs <- cases2 %>%
   mutate(., cRUL = (recode(RUL,
@@ -59,13 +79,28 @@ cases2_fs <- cases2 %>%
          ., cCEN = (recode(CEN,
                            cuts = "2, 3, 4",
                            values =  "0, 0.33, 0.66, 1")),
-         ., cDEC = (recode(DEC,
+         ., cTRA = (recode(TRA,
                            cuts = "2, 3, 4",
                            values =  "0, 0.33, 0.66, 1")),
          ., cMON = (recode(MON,
                            cuts = "2, 3, 4",
                            values =  "0, 0.33, 0.66, 1")),
          ., cGOA = (recode(GOA,
+                           cuts = "2, 3, 4",
+                           values =  "0, 0.33, 0.66, 1")),
+         ., cACC = (recode(ACC,
+                           cuts = "2, 3, 4",
+                           values =  "0, 0.33, 0.66, 1")),
+         ., cCON = (recode(CON,
+                           cuts = "2, 3, 4",
+                           values =  "0, 0.33, 0.66, 1")),
+         ., cFOC = (recode(FOC,
+                           cuts = "2, 3, 4",
+                           values =  "0, 0.33, 0.66, 1")),
+         ., cMIT = (recode(MIT,
+                           cuts = "2, 3, 4",
+                           values =  "0, 0.33, 0.66, 1")),
+         ., cCRE = (recode(CRE,
                            cuts = "2, 3, 4",
                            values =  "0, 0.33, 0.66, 1")),
          ., cLEG = (recode(LEG,
@@ -85,40 +120,39 @@ cases2_fs <- cases2 %>%
                            values =  "0, 0.33, 0.66, 1")))
 cases2_fs_analysis <- cases2_fs %>%
   dplyr::select(cRUL:cCHA)
-
 #Check for necessity for CHA
 superSubset(cases2_fs_analysis, 
             outcome = "cCHA", 
             neg.out = FALSE,
-            conditions = "cRUL, cCEN, cDEC, cMON, cGOA",
             relation = "necessity",
-            incl.cut = 0.80)
+            incl.cut = 0.90,
+            ron.cut = 0.60)
 
 #Run analysis for top performers ("CHA") and all conditions.
-ttTOP <- truthTable(cases2_fs_analysis, outcome = "cEFF",
-                    conditions = "cRUL, cCEN, cDEC, cMON, cGOA",
+ttCHA <- truthTable(cases2_fs_analysis, outcome = "cCHA",
+                    conditions = "cRUL, cGOA, cACC, cFOC, cMIT, cCRE",
                     incl.cut = 0.80,
                     show.cases = TRUE,
                     dcc = TRUE,
                     sort.by = "OUT, n")
-ttTOP
+ttCHA
 
 #Compute minimization of truth table and print conservative solution:
-soltop_com <- minimize(ttTOP, 
+solcha_con <- minimize(ttCHA, 
                        details = TRUE)
-soltop_com
+solcha_con
 
 #Compute parsimonious solution and print results:
-soltop_par <- minimize(ttTOP,
+solcha_par <- minimize(ttCHA,
                        details = TRUE,
                        include = "?",
                        show.cases = TRUE)
-soltop_par
+solcha_par
 
 #Compute intermediary solution and print results:
-soltop_int <- minimize(ttTOP,
+solcha_int <- minimize(ttCHA,
                        details = TRUE,
                        include = "?",
                        show.cases = TRUE,
-                       dir.exp = "cEFF")
-soltop_int
+                       dir.exp = "cCON, cFOC, cMIT, cCRE")
+solcha_int
