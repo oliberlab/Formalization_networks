@@ -322,25 +322,24 @@ cases_FP <- cases %>% filter(.$Q23_Start_for.profit == "Yes" |
                                .$Q23_Middle_for.profit == "Yes" |  
                                .$Q23_End_for.profit == "Yes")
 #Delete superfluous information
-cases_FP <- cases %>%
+cases_FP <- cases_FP %>%
   select(-File.name,
          -Authors,
          -Institution,
          -e.mail.address.first.author)
 #Delete cases with missing data on central items
 cases_FP<-subset(cases_FP, 
-                 Q24_DK != "Yes" & 
-                   Q27_DK != "Yes" &
+                 Q24_DK != "Yes" &
+                   Q32_DK != "Yes" &
+                   Q33_DK != "Yes" &
                    Q39_DK != "Yes" &
-                   
+                   Q41_DK != "Yes" &
                    Q48_DK != "Yes" &
                    Q49_DK != "Yes" &
                    Q50_DK != "Yes" &
-                   Q51.1_DK != "Yes" &
-                   Q51.2_DK != "Yes" &
-                   Q51.3_DK != "Yes" &
-                   Q51.4_DK != "Yes" &
-                   Q58_Support_DK != "Yes")
+                   Q58_Support_DK != "Yes" &
+                   Q58_positive_DK != "Yes" &
+                   Q58_joint_DK != "Yes")
 #Replace all values set to "Off" with "NA", then NA with 0.
 #Same procedure for "Yes", set to 5.
 cases_FP[cases_FP == "Off"] <- NA
@@ -348,6 +347,25 @@ cases_FP[is.na(cases_FP)] <- 0
 cases_FP[cases_FP == "Yes"] <- NA
 cases_FP[is.na(cases_FP)] <- 5
 #Create sets using extant items.
+cases_FP_fs <- cases_FP %>%
+  select(Q24_Start, Q24_Middle, Q24_End,
+         Q32_Start, Q32_Middle, Q32_End,
+         Q33_Start, Q33_Middle, Q33_End,
+         Q39_Start, Q39_Middle, Q39_End,
+         Q41_Start, Q41_Middle, Q41_End,
+         Q48_Start, Q48_Middle, Q48_End,
+         Q49_Start, Q49_Middle, Q49_End,
+         Q50_Start, Q50_Middle, Q50_End,
+         Q51.1_Start, Q51.1_Middle, Q51.1_End,
+         Q51.2_Start, Q51.2_Middle, Q51.2_End,
+         Q51.3_Start, Q51.3_Middle, Q51.3_End,
+         Q57.1_Start, Q57.1_Middle, Q57.1_End,
+         Q57.2_Start, Q57.2_Middle, Q57.2_End,
+         Q57.3_Start, Q57.3_Middle, Q57.3_End,
+         Q58.1_Start, Q58.1_Middle, Q58.1_End,
+         Q58.2_Start, Q58.2_Middle, Q58.2_End,
+         Q58.3_Start, Q58.3_Middle, Q58.3_End)
+cases_FP_fs[] <- lapply(cases_FP_fs, as.numeric)
 compute_score2 <- function(x){
   x <- as.numeric(as.character(x))
   x <- x/2
@@ -356,24 +374,23 @@ compute_score3 <- function(x){
   x <- as.numeric(as.character(x))
   x <- x/3
 }
-cases_FP <- cases_FP %>%
-  mutate(., RUL = as.numeric(as.character(Q24_End)),
-         ., CEN = as.numeric(as.character(Q39_End)),
-         ., MON = as.numeric(as.character(Q50_End)),
-         ., GOA = as.numeric(as.character(Q48_End)),
-         ., STR = as.numeric(as.character(Q49_End)),
+cases_FP_fs <- cases_FP %>%
+  mutate(., RUL = as.numeric(as.character(Q24_Middle)),
+         ., CEN = as.numeric(as.character(Q39_Middle)),
+         ., MON = as.numeric(as.character(Q50_Middle)),
+         ., GOA = as.numeric(as.character(Q48_Middle)),
+         ., STR = as.numeric(as.character(Q49_Middle)),
          ., ACC = pmax(
            as.numeric(as.character(Q51.1_Middle)), 
            as.numeric(as.character(Q51.2_Middle)), 
            as.numeric(as.character(Q51.3_Middle)),
-           as.numeric(as.character(Q51.4_Middle)),
            as.numeric(as.character(Q51.1_End)), 
            as.numeric(as.character(Q51.2_End)), 
-           as.numeric(as.character(Q51.3_End)),
-           as.numeric(as.character(Q51.4_End))),
-         ., LEG = compute_score3(as.numeric(as.character(Q58.1_Start))) +
-                  compute_score3(as.numeric(as.character(Q58.2_Middle))) +
-                  compute_score3(as.numeric(as.character(Q58.3_End))),
+           as.numeric(as.character(Q51.3_End))),
+         ., CON = as.numeric(as.character(Q32_End)),
+         ., FOC = as.numeric(as.character(Q33_End)),
+         ., LEG = as.numeric(as.character(Q58.1_End)),
+         ., KNO = as.numeric(as.character(Q41_End)),
          ., EFF = pmax(
            as.numeric(as.character(Q57.1_Middle)),
            as.numeric(as.character(Q57.1_End)),
@@ -384,10 +401,10 @@ cases_FP <- cases_FP %>%
          ., CAP = as.numeric(as.character(Q58.2_End)),
          ., SOC = as.numeric(as.character(Q58.3_End)),
          ., CHA = compute_score3(CAP) + 
-           compute_score3(SOC) +
-           compute_score3(EFF))
+           compute_score3(LEG) +
+           compute_score3(SOC))
 #Calibrate using recode. 
-cases_FP_fs <- cases_FP %>%
+cases_FP_fs <- cases_FP_fs %>%
   mutate(., cRUL = (recode(RUL,
                            cuts = "2, 3, 4",
                            values =  "0, 0.33, 0.66, 1")),
@@ -406,25 +423,34 @@ cases_FP_fs <- cases_FP %>%
          ., cACC = (recode(ACC,
                            cuts = "2, 3, 4",
                            values =  "0, 0.33, 0.66, 1")),
+         ., cCON = (recode(CON,
+                           cuts = "2, 3, 4",
+                           values =  "0, 0.33, 0.66, 1")),
+         ., cFOC = (recode(FOC,
+                           cuts = "2, 3, 4",
+                           values =  "0, 0.33, 0.66, 1")),
          ., cLEG = (recode(LEG,
+                           cuts = "2, 3, 4",
+                           values =  "0, 0.33, 0.66, 1")),
+         ., cEFF = (recode(EFF,
                            cuts = "2, 3, 4",
                            values =  "0, 0.33, 0.66, 1")),
          ., cCHA = (recode(CHA,
                            cuts = "2, 3, 4",
                            values =  "0, 0.33, 0.66, 1")))
 cases_FP_fs_an <- cases_FP_fs %>%
-  dplyr::select(cRUL:cCHA)
+  select(cRUL:cCHA)
 #Check for necessity for CHA
 superSubset(cases_FP_fs_an, 
             outcome = "cCHA", 
             neg.out = FALSE,
-            relation = "necessity",
+            relation = "sufficiency",
             incl.cut = 0.90,
             ron.cut = 0.60)
 #Run analysis for top performers ("CHA") and all conditions.
-ttACC <- truthTable(cases_FP_fs_an, outcome = "cCHA",
-                    conditions = "cRUL, cCEN, cMON, cGOA, cSTR, cACC",
-                    incl.cut = 0.85,
+ttACC <- truthTable(cases_FP_fs_an, outcome = "~cCHA",
+                    conditions = "cRUL, cCEN, cMON, cGOA, cSTR, cCON, cFOC, cACC",
+                    incl.cut = 0.80,
                     show.cases = TRUE,
                     dcc = TRUE,
                     sort.by = "OUT, n")
