@@ -329,6 +329,7 @@ cases_FP <- cases_FP %>%
          -e.mail.address.first.author)
 #Delete cases with missing data on central items
 cases_FP<-subset(cases_FP, 
+                 Q17_DK != "Yes" &
                  Q24_DK != "Yes" &
                    Q26_DK != "Yes" &
                    Q33_DK != "Yes" &
@@ -348,7 +349,8 @@ cases_FP[cases_FP == "Yes"] <- NA
 cases_FP[is.na(cases_FP)] <- 5
 #Create sets using extant items.
 cases_FP_fs <- subset(cases_FP, 
-                      select = c(Q24_Start, Q24_Middle, Q24_End,
+                      select = c(Q17_Start, Q17_Middle, Q17_End,
+                                 Q24_Start, Q24_Middle, Q24_End,
                                  Q26_Start, Q26_Middle, Q26_End,
                                  Q33_Start, Q33_Middle, Q33_End,
                                  Q39_Start, Q39_Middle, Q39_End,
@@ -368,7 +370,8 @@ cases_FP_fs <- subset(cases_FP,
 cases_FP_fs <- cases_FP_fs %>% mutate_all(as.character)
 cases_FP_fs <- cases_FP_fs %>% mutate_all(as.numeric)
 cases_FP_fs <- cases_FP_fs %>%
-  mutate(., RUL = rowMeans(select(., c(Q24_Start, Q24_Middle))),
+  mutate(., POW = rowMeans(select(., c(Q17_Start, Q17_Middle))),
+         ., RUL = rowMeans(select(., c(Q24_Start, Q24_Middle))),
          ., CEN = rowMeans(select(., c(Q39_Start, Q39_Middle))),
          ., MON = rowMeans(select(., c(Q50_Start, Q50_Middle))),
          ., GOA = rowMeans(select(., c(Q48_Start, Q48_Middle))),
@@ -386,7 +389,10 @@ cases_FP_fs <- cases_FP_fs %>%
          ., CHA = rowMeans(select(., c(CAP, LEG, SOC))))
 #Calibrate Likert scores using recode. 
 cases_FP_fs <- cases_FP_fs %>%
-  mutate(., cRUL = (recode(RUL,
+  mutate(., cPOW = (recode(POW,
+                           cuts = "3, 3.5, 4",
+                           values =  "0, 0.33, 0.66, 1")),
+         ., cRUL = (recode(RUL,
                            cuts = "2, 3, 4",
                            values =  "0, 0.33, 0.66, 1")),
          ., cCEN = (recode(CEN,
@@ -420,7 +426,7 @@ cases_FP_fs <- cases_FP_fs %>%
                            cuts = "2, 3, 4",
                            values =  "0, 0.33, 0.66, 1")))
 cases_FP_fs_an <- cases_FP_fs %>%
-  select(cRUL:cCHA)
+  select(cPOW:cCHA)
 #Check for necessity for outcome
 superSubset(cases_FP_fs_an, 
             outcome = "cCHA", 
@@ -428,31 +434,31 @@ superSubset(cases_FP_fs_an,
             relation = "necessity",
             incl.cut = 0.90,
             ron.cut = 0.60)
-pof("cCHA <- cGOA", data = cases_FP_fs_an)
-XYplot(cGOA, cCHA, 
+pof("cCHA <- cRUL", data = cases_FP_fs_an)
+XYplot(cRUL, cCHA, 
        data = cases_FP_fs_an, 
        jitter = TRUE,
        relation = "necessity")
 #Run analysis for all conditions.
-ttACC <- truthTable(cases_FP_fs_an, outcome = "cCHA",
-                    conditions = "cRUL, cCEN, cMON, cGOA, cSTR, cFOC, cACC",
-                    incl.cut = 0.90,
+ttCHA <- truthTable(cases_FP_fs_an, outcome = "cCHA",
+                    conditions = "cPOW, cRUL, cCEN, cMON, cGOA, cSTR, cFOC, cACC",
+                    incl.cut = 0.80,
                     show.cases = TRUE,
                     dcc = TRUE,
                     sort.by = "OUT, n")
-ttACC
+ttCHA
 #Compute minimization of truth table and print conservative solution:
-solacc_con <- minimize(ttACC, 
+solcha_con <- minimize(ttCHA, 
                        details = TRUE)
-solacc_con
+solcha_con
 #Compute parsimonious solution and print results:
-solacc_par <- minimize(ttACC,
+solcha_par <- minimize(ttCHA,
                        details = TRUE,
                        include = "?",
                        show.cases = TRUE)
-solacc_par
+solcha_par
 #Compute intermediary solution and print results:
-solcha_int <- minimize(ttACC,
+solcha_int <- minimize(ttCHA,
                        details = TRUE,
                        include = "?",
                        show.cases = TRUE,
@@ -588,11 +594,11 @@ solcha_con <- minimize(ttCHA,
                        details = TRUE)
 solcha_con
 #Compute parsimonious solution and print results:
-solacc_par <- minimize(ttCHA,
+solcha_par <- minimize(ttCHA,
                        details = TRUE,
                        include = "?",
                        show.cases = TRUE)
-solacc_par
+solcha_par
 #Compute intermediary solution and print results:
 solcha_int <- minimize(ttCHA,
                        details = TRUE,
