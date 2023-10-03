@@ -16,18 +16,12 @@ cases_FP <- cases_FP %>%
          -e.mail.address.first.author)
 #Delete cases with missing data on central items
 cases_FP<-subset(cases_FP, 
-                 Q17_DK != "Yes" &
                  Q24_DK != "Yes" &
-                   Q26_DK != "Yes" &
-                   Q33_DK != "Yes" &
+                   Q27_DK != "Yes" &
                    Q39_DK != "Yes" &
-                   Q41_DK != "Yes" &
                    Q48_DK != "Yes" &
                    Q49_DK != "Yes" &
-                   Q50_DK != "Yes" &
-                   Q58_Support_DK != "Yes" &
-                   Q58_positive_DK != "Yes" &
-                   Q58_joint_DK != "Yes")
+                   Q50_DK != "Yes")
 #Replace all values set to "Off" with "NA", then NA with 0.
 #Same procedure for "Yes", set to 5.
 cases_FP[cases_FP == "Off"] <- NA
@@ -36,12 +30,9 @@ cases_FP[cases_FP == "Yes"] <- NA
 cases_FP[is.na(cases_FP)] <- 5
 #Create sets using extant items.
 cases_FP_fs <- subset(cases_FP, 
-                      select = c(Q17_Start, Q17_Middle, Q17_End,
-                                 Q24_Start, Q24_Middle, Q24_End,
-                                 Q26_Start, Q26_Middle, Q26_End,
-                                 Q33_Start, Q33_Middle, Q33_End,
+                      select = c(Q24_Start, Q24_Middle, Q24_End,
+                                 Q27_Start, Q27_Middle, Q27_End,
                                  Q39_Start, Q39_Middle, Q39_End,
-                                 Q41_Start, Q41_Middle, Q41_End,
                                  Q48_Start, Q48_Middle, Q48_End,
                                  Q49_Start, Q49_Middle, Q49_End,
                                  Q50_Start, Q50_Middle, Q50_End,
@@ -57,18 +48,15 @@ cases_FP_fs <- subset(cases_FP,
 cases_FP_fs <- cases_FP_fs %>% mutate_all(as.character)
 cases_FP_fs <- cases_FP_fs %>% mutate_all(as.numeric)
 cases_FP_fs <- cases_FP_fs %>%
-  mutate(., POW = ((Q17_Start + Q17_Middle)/2),
-         ., RUL = ((Q24_Start + Q24_Middle)/2),
-         ., CEN = ((Q39_Start + Q39_Middle)/2),
-         ., MON = ((Q50_Start + Q50_Middle)/2),
-         ., GOA = ((Q48_Start + Q48_Middle)/2),
-         ., STR = ((Q49_Start + Q49_Middle)/2),
+  mutate(., RUL = Q24_Middle,
+         ., TRA = Q27_Middle,
+         ., CEN = Q39_Middle,
+         ., MON = Q50_Middle,
+         ., GOA = Q48_Middle,
+         ., STR = Q49_Middle,
          ., ACC = pmax(Q51.1_Middle, Q51.2_Middle, Q51.3_Middle, Q51.1_End, 
                        Q51.2_End, Q51.3_End),
-         ., CON = ((Q26_Start + Q26_Middle)/2),
-         ., FOC = ((Q33_Start + Q33_Middle)/2),
          ., LEG = Q58.1_End,
-         ., KNO = ((Q41_Start + Q41_Middle)/2),
          ., EFF = pmax(Q57.1_Middle, Q57.1_End, Q57.2_Middle, Q57.2_End,
                        Q57.3_Middle, Q57.3_End),
          ., CAP = Q58.2_End,
@@ -76,10 +64,10 @@ cases_FP_fs <- cases_FP_fs %>%
          ., CHA = (CAP + LEG + SOC)/3)
 #Calibrate Likert scores using recode. 
 cases_FP_fs <- cases_FP_fs %>%
-  mutate(., cPOW = (recode(POW,
-                           cuts = "3, 3.5, 4",
+  mutate(., cRUL = (recode(RUL,
+                           cuts = "2, 3, 4",
                            values =  "0, 0.33, 0.66, 1")),
-         ., cRUL = (recode(RUL,
+         ., cTRA = (recode(TRA,
                            cuts = "2, 3, 4",
                            values =  "0, 0.33, 0.66, 1")),
          ., cCEN = (recode(CEN,
@@ -97,13 +85,7 @@ cases_FP_fs <- cases_FP_fs %>%
          ., cACC = (recode(ACC,
                            cuts = "2, 3, 4",
                            values =  "0, 0.33, 0.66, 1")),
-         ., cFOC = (recode(FOC,
-                           cuts = "3, 3.5, 4",
-                           values =  "0, 0.33, 0.66, 1")),
          ., cLEG = (recode(LEG,
-                           cuts = "2, 3, 4",
-                           values =  "0, 0.33, 0.66, 1")),
-         ., cKNO = (recode(KNO,
                            cuts = "2, 3, 4",
                            values =  "0, 0.33, 0.66, 1")),
          ., cEFF = (recode(EFF,
@@ -113,39 +95,39 @@ cases_FP_fs <- cases_FP_fs %>%
                            cuts = "2, 3, 4",
                            values =  "0, 0.33, 0.66, 1")))
 cases_FP_fs_an <- cases_FP_fs %>%
-  select(cPOW:cCHA)
+  select(cRUL:cCHA)
 #Check for necessity for outcome
 superSubset(cases_FP_fs_an, 
-            outcome = "cACC", 
+            outcome = "cEFF", 
             neg.out = FALSE,
             relation = "necessity",
             incl.cut = 0.90,
             ron.cut = 0.50)
 #Run analysis for all conditions.
-ttCHA <- truthTable(cases_FP_fs_an, outcome = "cACC",
-                    conditions = "cPOW, cRUL, cCEN, cMON, cGOA, cSTR",
+ttFP <- truthTable(cases_FP_fs_an, outcome = "cACC",
+                    conditions = "cRUL, cTRA, cCEN, cMON, cGOA",
                     incl.cut = 0.80,
                     show.cases = TRUE,
                     dcc = TRUE,
                     sort.by = "OUT, n")
-ttCHA
+ttFP
 #Compute minimization of truth table and print conservative solution:
-solcha_con <- minimize(ttCHA, 
+solfp_con <- minimize(ttFP, 
                        details = TRUE)
-solcha_con
+solfp_con
 #Compute parsimonious solution and print results:
-solcha_par <- minimize(ttCHA,
+solfp_par <- minimize(ttFP,
                        details = TRUE,
                        include = "?",
                        show.cases = TRUE)
-solcha_par
+solfp_par
 #Compute intermediary solution and print results:
-solcha_int <- minimize(ttCHA,
+solfp_int <- minimize(ttFP,
                        details = TRUE,
                        include = "?",
                        show.cases = TRUE,
-                       dir.exp = "cRUL, cCEN, cMON, cGOA, cSTR")
-solcha_int
+                       dir.exp = "cRUL, cTRA, cCEN, cMON, cGOA")
+solfp_int
 
 #Study all but for profit
 cases_NP <- cases_all %>% filter(.$Q23_Start_for.profit == "Off" |
@@ -159,18 +141,12 @@ cases_NP <- cases_NP %>%
          -e.mail.address.first.author)
 #Delete cases with missing data on central items
 cases_NP<-subset(cases_NP, 
-                 Q17_DK != "Yes" &
-                   Q24_DK != "Yes" &
-                   Q26_DK != "Yes" &
-                   Q33_DK != "Yes" &
+                 Q24_DK != "Yes" &
+                   Q27_DK != "Yes" &
                    Q39_DK != "Yes" &
-                   Q41_DK != "Yes" &
                    Q48_DK != "Yes" &
                    Q49_DK != "Yes" &
-                   Q50_DK != "Yes" &
-                   Q58_Support_DK != "Yes" &
-                   Q58_positive_DK != "Yes" &
-                   Q58_joint_DK != "Yes")
+                   Q50_DK != "Yes")
 #Replace all values set to "Off" with "NA", then NA with 0.
 #Same procedure for "Yes", set to 5.
 cases_NP[cases_NP == "Off"] <- NA
@@ -179,12 +155,9 @@ cases_NP[cases_NP == "Yes"] <- NA
 cases_NP[is.na(cases_NP)] <- 5
 #Create sets using extant items.
 cases_NP_fs <- subset(cases_NP, 
-                      select = c(Q17_Start, Q17_Middle, Q17_End,
-                                 Q24_Start, Q24_Middle, Q24_End,
-                                 Q26_Start, Q26_Middle, Q26_End,
-                                 Q33_Start, Q33_Middle, Q33_End,
+                      select = c(Q24_Start, Q24_Middle, Q24_End,
+                                 Q27_Start, Q27_Middle, Q27_End,
                                  Q39_Start, Q39_Middle, Q39_End,
-                                 Q41_Start, Q41_Middle, Q41_End,
                                  Q48_Start, Q48_Middle, Q48_End,
                                  Q49_Start, Q49_Middle, Q49_End,
                                  Q50_Start, Q50_Middle, Q50_End,
@@ -200,18 +173,15 @@ cases_NP_fs <- subset(cases_NP,
 cases_NP_fs <- cases_NP_fs %>% mutate_all(as.character)
 cases_NP_fs <- cases_NP_fs %>% mutate_all(as.numeric)
 cases_NP_fs <- cases_NP_fs %>%
-  mutate(., POW = ((Q17_Start + Q17_Middle)/2),
-         ., RUL = ((Q24_Start + Q24_Middle)/2),
-         ., CEN = ((Q39_Start + Q39_Middle)/2),
-         ., MON = ((Q50_Start + Q50_Middle)/2),
-         ., GOA = ((Q48_Start + Q48_Middle)/2),
-         ., STR = ((Q49_Start + Q49_Middle)/2),
+  mutate(., RUL = Q24_Middle,
+         ., TRA = Q27_Middle,
+         ., CEN = Q39_Middle,
+         ., MON = Q50_Middle,
+         ., GOA = Q48_Middle,
+         ., STR = Q49_Middle,
          ., ACC = pmax(Q51.1_Middle, Q51.2_Middle, Q51.3_Middle, Q51.1_End, 
                        Q51.2_End, Q51.3_End),
-         ., CON = ((Q26_Start + Q26_Middle)/2),
-         ., FOC = ((Q33_Start + Q33_Middle)/2),
          ., LEG = Q58.1_End,
-         ., KNO = ((Q41_Start + Q41_Middle)/2),
          ., EFF = pmax(Q57.1_Middle, Q57.1_End, Q57.2_Middle, Q57.2_End,
                        Q57.3_Middle, Q57.3_End),
          ., CAP = Q58.2_End,
@@ -219,10 +189,10 @@ cases_NP_fs <- cases_NP_fs %>%
          ., CHA = (CAP + LEG + SOC)/3)
 #Calibrate Likert scores using recode. 
 cases_NP_fs <- cases_NP_fs %>%
-  mutate(., cPOW = (recode(POW,
-                           cuts = "3, 3.5, 4",
+  mutate(., cRUL = (recode(RUL,
+                           cuts = "2, 3, 4",
                            values =  "0, 0.33, 0.66, 1")),
-         ., cRUL = (recode(RUL,
+         ., cTRA = (recode(TRA,
                            cuts = "2, 3, 4",
                            values =  "0, 0.33, 0.66, 1")),
          ., cCEN = (recode(CEN,
@@ -240,13 +210,7 @@ cases_NP_fs <- cases_NP_fs %>%
          ., cACC = (recode(ACC,
                            cuts = "2, 3, 4",
                            values =  "0, 0.33, 0.66, 1")),
-         ., cFOC = (recode(FOC,
-                           cuts = "3, 3.5, 4",
-                           values =  "0, 0.33, 0.66, 1")),
          ., cLEG = (recode(LEG,
-                           cuts = "2, 3, 4",
-                           values =  "0, 0.33, 0.66, 1")),
-         ., cKNO = (recode(KNO,
                            cuts = "2, 3, 4",
                            values =  "0, 0.33, 0.66, 1")),
          ., cEFF = (recode(EFF,
@@ -256,39 +220,41 @@ cases_NP_fs <- cases_NP_fs %>%
                            cuts = "2, 3, 4",
                            values =  "0, 0.33, 0.66, 1")))
 cases_NP_fs_an <- cases_NP_fs %>%
-  select(cPOW:cCHA)
+  select(cRUL:cCHA)
 #Check for necessity for outcome
 superSubset(cases_NP_fs_an, 
-            outcome = "cCHA", 
+            outcome = "cACC", 
             neg.out = FALSE,
             relation = "necessity",
             incl.cut = 0.90,
             ron.cut = 0.60)
 #Run analysis for all conditions.
-ttCHA <- truthTable(cases_NP_fs_an, outcome = "cCHA",
-                    conditions = "cRUL, cCEN, cMON, cGOA, cSTR, cFOC, cACC",
-                    incl.cut = 0.80,
+ttNP <- truthTable(cases_NP_fs_an, outcome = "cACC",
+                    conditions = "cRUL, cTRA, cCEN, cMON, cGOA",
+                    incl.cut = 0.87,
                     show.cases = TRUE,
                     dcc = TRUE,
                     sort.by = "OUT, n")
-ttCHA
+ttNP
 #Compute minimization of truth table and print conservative solution:
-solcha_con <- minimize(ttCHA, 
+solnp_con <- minimize(ttNP, 
                        details = TRUE)
-solcha_con
+solnp_con
 #Compute parsimonious solution and print results:
-solcha_par <- minimize(ttCHA,
+solnp_par <- minimize(ttNP,
                        details = TRUE,
                        include = "?",
                        show.cases = TRUE)
-solcha_par
+solnp_par
 #Compute intermediary solution and print results:
-solcha_int <- minimize(ttCHA,
+solnp_int <- minimize(ttNP,
                        details = TRUE,
                        include = "?",
                        show.cases = TRUE,
-                       dir.exp = "cRUL, cCEN, cMON, cGOA, cSTR, cFOC, cACC")
-solcha_int
+                       dir.exp = "cRUL, cTRA, cCEN, cMON, cGOA")
+solnp_int
+#Select C1P2 because it has better fit values and primo implicants are same.
+#Hence select P2 for discussions. 
 
 
 #Study Beta - Systemic change as mvQCA
@@ -302,15 +268,16 @@ cases_FP <- cases %>% filter(.$Q23_Start_for.profit == "Yes" |
                                .$Q23_Middle_for.profit == "Yes" |  
                                .$Q23_End_for.profit == "Yes")
 #Delete superfluous information
-cases_FP <- cases %>%
+cases_MV <- cases %>%
   select(-File.name,
          -Authors,
          -Institution,
          -e.mail.address.first.author)
 #Delete cases with missing data on central items
-cases_FP<-subset(cases_FP, 
+cases_MV<-subset(cases_MV, 
                  Q24_DK != "Yes" &
                    Q26_DK != "Yes" &
+                   Q27_DK != "Yes" &
                    Q33_DK != "Yes" &
                    Q39_DK != "Yes" &
                    Q41_DK != "Yes" &
@@ -322,14 +289,16 @@ cases_FP<-subset(cases_FP,
                    Q58_joint_DK != "Yes")
 #Replace all values set to "Off" with "NA", then NA with 0.
 #Same procedure for "Yes", set to 5.
-cases_FP[cases_FP == "Off"] <- NA
-cases_FP[is.na(cases_FP)] <- 0
-cases_FP[cases_FP == "Yes"] <- NA
-cases_FP[is.na(cases_FP)] <- 5
+cases_MV[cases_MV == "Off"] <- NA
+cases_MV[is.na(cases_MV)] <- 0
+cases_MV[cases_MV == "Yes"] <- NA
+cases_MV[is.na(cases_MV)] <- 5
 #Create sets using extant items.
-cases_FP_fs <- subset(cases_FP, 
-                      select = c(Q24_Start, Q24_Middle, Q24_End,
+cases_CS_mv <- subset(cases_MV, 
+                      select = c(Q17_Start, Q17_Middle, Q17_End,
+                                 Q24_Start, Q24_Middle, Q24_End,
                                  Q26_Start, Q26_Middle, Q26_End,
+                                 Q27_Start, Q27_Middle, Q27_End,
                                  Q33_Start, Q33_Middle, Q33_End,
                                  Q39_Start, Q39_Middle, Q39_End,
                                  Q41_Start, Q41_Middle, Q41_End,
@@ -345,30 +314,38 @@ cases_FP_fs <- subset(cases_FP,
                                  Q58.1_Start, Q58.1_Middle, Q58.1_End,
                                  Q58.2_Start, Q58.2_Middle, Q58.2_End,
                                  Q58.3_Start, Q58.3_Middle, Q58.3_End))
-cases_FP_fs <- cases_FP_fs %>% mutate_all(as.character)
-cases_FP_fs <- cases_FP_fs %>% mutate_all(as.numeric)
-cases_FP_fs <- cases_FP_fs %>%
-  mutate(., RUL = rowMeans(select(., c(Q24_Start, Q24_Middle))),
-         ., CEN = rowMeans(select(., c(Q39_Start, Q39_Middle))),
-         ., MON = rowMeans(select(., c(Q50_Start, Q50_Middle))),
-         ., GOA = rowMeans(select(., c(Q48_Start, Q48_Middle))),
-         ., STR = rowMeans(select(., c(Q49_Start, Q49_Middle))),
-         ., ACC = pmax(Q51.1_Middle, Q51.2_Middle, Q51.3_Middle, Q51.1_Start, 
-                       Q51.2_Start, Q51.3_Start),
-         ., CON = rowMeans(select(., c(Q26_Start, Q26_Middle))),
-         ., FOC = rowMeans(select(., c(Q33_Start, Q33_Middle))),
-         ., SUP = Q58.1_End,
-         ., KNO = rowMeans(select(., c(Q41_Start, Q41_Middle))),
-         ., INO = pmax(Q57.1_Middle, Q57.1_End, Q57.2_Middle, Q57.2_End,
+cases_CS_mv <- cases_CS_mv %>% mutate_all(as.character)
+cases_CS_mv <- cases_CS_mv %>% mutate_all(as.numeric)
+cases_CS_mv <- cases_CS_mv %>%
+  mutate(., POW = Q17_Middle,
+         ., RUL = Q24_Middle,
+         ., TRA = Q27_Middle,
+         ., CEN = Q39_Middle,
+         ., MON = Q50_Middle,
+         ., GOA = Q48_Middle,
+         ., STR = Q49_Middle,
+         ., ACC = pmax(Q51.1_Middle, Q51.2_Middle, Q51.3_Middle, Q51.1_End, 
+                       Q51.2_End, Q51.3_End),
+         ., CON = Q26_Middle,
+         ., FOC = Q33_Middle,
+         ., LEG = Q58.1_End,
+         ., KNO = Q41_Middle,
+         ., EFF = pmax(Q57.1_Middle, Q57.1_End, Q57.2_Middle, Q57.2_End,
                        Q57.3_Middle, Q57.3_End),
          ., CAP = Q58.2_End,
          ., SOC = Q58.3_End,
-         ., CHA = rowMeans(select(., c(CAP, SUP, SOC))))
+         ., CHA = (CAP + LEG + SOC)/3)
 #Calibrate Likert scores using multi-values. 
-cases_FP_fs <- cases_FP_fs %>%
-  mutate(., cRUL = (calibrate(RUL,
+cases_CS_mv <- cases_CS_mv %>%
+  mutate(., cPOW = (calibrate(POW,
+                              type = "crisp",
+                              thresholds = "3, 4")),
+         ., cRUL = (calibrate(RUL,
                            type = "crisp",
                            thresholds = "2, 3, 4")),
+         ., cTRA = (calibrate(TRA,
+                              type = "crisp",
+                              thresholds = "2, 3, 4")),
          ., cCEN = (calibrate(CEN,
                            type = "crisp",
                            thresholds = "2, 3, 4")),
@@ -387,50 +364,186 @@ cases_FP_fs <- cases_FP_fs %>%
          ., cFOC = (calibrate(FOC,
                               type = "crisp",
                               thresholds = "3, 4")),
-         ., cSUP = (calibrate(SUP,
-                           type = "crisp",
-                           thresholds = "2, 3, 4")),
-         ., cKNO = (calibrate(KNO,
-                              type = "crisp",
-                              thresholds = "2, 3, 4")),
-         ., cINO = (calibrate(INO,
-                              type = "crisp",
-                              thresholds = "2, 3, 4")),
          ., cCHA = (calibrate(CHA,
                            type = "crisp",
                            thresholds = "2, 3, 4")))
-cases_FP_fs_an <- cases_FP_fs %>%
-  select(cRUL:cCHA)
+cases_CS_mv_an <- cases_CS_mv %>%
+  select(cPOW:cCHA)
 #Check for necessity for outcome
-superSubset(cases_FP_fs_an, 
-            outcome = "cCHA", 
+superSubset(cases_CS_mv_an, 
+            outcome = "cACC", 
             neg.out = FALSE,
             relation = "necessity",
             incl.cut = 0.8)
 #Run analysis for all conditions.
-ttCHA <- truthTable(cases_FP_fs_an, 
-                    outcome = "cCHA{3}",
-                    conditions = "cRUL, cCEN, cMON, cGOA, cSTR, cFOC, cACC",
+ttMV <- truthTable(cases_CS_mv_an, 
+                    outcome = "cACC{3}",
+                    conditions = "cRUL, cCEN, cMON, cGOA",
                     show.cases = TRUE,
                     dcc = TRUE,
                     sort.by = "OUT, n")
-ttCHA
+ttMV
 #Compute minimization of truth table and print conservative solution:
-solcha_con <- minimize(ttCHA, 
+solmv_con <- minimize(ttMV, 
                        details = TRUE)
-solcha_con
+solmv_con
 #Compute parsimonious solution and print results:
-solcha_par <- minimize(ttCHA,
+solmv_par <- minimize(ttMV,
                        details = TRUE,
                        include = "?",
                        show.cases = TRUE)
-solcha_par
+solmv_par
 #Compute intermediary solution and print results:
-solcha_int <- minimize(ttCHA,
+solmv_int <- minimize(ttMV,
                        details = TRUE,
                        include = "?",
                        show.cases = TRUE,
-                       dir.exp = "cRUL{3}, cCEN{3}, cGOA{3}, cSTR{3}, cFOC{2}, cACC{3}")
-solcha_int
+                       dir.exp = "cRUL{3}, cCEN{3}, cMON{3}, cGOA{3}")
+solmv_int
 
-
+#Study for all
+cases_all <- read.csv(path, sep=";")
+#Delete superfluous information
+cases_CS <- cases_all %>%
+  select(-File.name,
+         -Authors,
+         -Institution,
+         -e.mail.address.first.author)
+#Delete cases with missing data on central items
+cases_CS<-subset(cases_CS, 
+                 Q17_DK != "Yes" &
+                   Q24_DK != "Yes" &
+                   Q26_DK != "Yes" &
+                   Q27_DK != "Yes" &
+                   Q33_DK != "Yes" &
+                   Q39_DK != "Yes" &
+                   Q41_DK != "Yes" &
+                   Q48_DK != "Yes" &
+                   Q49_DK != "Yes" &
+                   Q50_DK != "Yes" &
+                   Q58_Support_DK != "Yes" &
+                   Q58_positive_DK != "Yes" &
+                   Q58_joint_DK != "Yes")
+#Replace all values set to "Off" with "NA", then NA with 0.
+#Same procedure for "Yes", set to 5.
+cases_CS[cases_CS == "Off"] <- NA
+cases_CS[is.na(cases_CS)] <- 0
+cases_CS[cases_CS == "Yes"] <- NA
+cases_CS[is.na(cases_CS)] <- 5
+#Create sets using extant items.
+cases_CS_fs <- subset(cases_CS, 
+                      select = c(Q17_Start, Q17_Middle, Q17_End,
+                                 Q24_Start, Q24_Middle, Q24_End,
+                                 Q26_Start, Q26_Middle, Q26_End,
+                                 Q27_Start, Q27_Middle, Q27_End,
+                                 Q33_Start, Q33_Middle, Q33_End,
+                                 Q39_Start, Q39_Middle, Q39_End,
+                                 Q41_Start, Q41_Middle, Q41_End,
+                                 Q48_Start, Q48_Middle, Q48_End,
+                                 Q49_Start, Q49_Middle, Q49_End,
+                                 Q50_Start, Q50_Middle, Q50_End,
+                                 Q51.1_Start, Q51.1_Middle, Q51.1_End,
+                                 Q51.2_Start, Q51.2_Middle, Q51.2_End,
+                                 Q51.3_Start, Q51.3_Middle, Q51.3_End,
+                                 Q57.1_Start, Q57.1_Middle, Q57.1_End,
+                                 Q57.2_Start, Q57.2_Middle, Q57.2_End,
+                                 Q57.3_Start, Q57.3_Middle, Q57.3_End,
+                                 Q58.1_Start, Q58.1_Middle, Q58.1_End,
+                                 Q58.2_Start, Q58.2_Middle, Q58.2_End,
+                                 Q58.3_Start, Q58.3_Middle, Q58.3_End))
+cases_CS_fs <- cases_CS_fs %>% mutate_all(as.character)
+cases_CS_fs <- cases_CS_fs %>% mutate_all(as.numeric)
+cases_CS_fs <- cases_CS_fs %>%
+  mutate(., POW = Q17_Middle,
+         ., RUL = Q24_Middle,
+         ., TRA = Q27_Middle,
+         ., CEN = Q39_Middle,
+         ., MON = Q50_Middle,
+         ., GOA = Q48_Middle,
+         ., STR = Q49_Middle,
+         ., ACC = pmax(Q51.1_Middle, Q51.2_Middle, Q51.3_Middle, Q51.1_End, 
+                       Q51.2_End, Q51.3_End),
+         ., CON = Q26_Middle,
+         ., FOC = Q33_Middle,
+         ., LEG = Q58.1_End,
+         ., KNO = Q41_Middle,
+         ., EFF = pmax(Q57.1_Middle, Q57.1_End, Q57.2_Middle, Q57.2_End,
+                       Q57.3_Middle, Q57.3_End),
+         ., CAP = Q58.2_End,
+         ., SOC = Q58.3_End,
+         ., CHA = (CAP + LEG + SOC)/3)
+#Calibrate Likert scores using recode. 
+cases_CS_fs <- cases_CS_fs %>%
+  mutate(., cPOW = (recode(POW,
+                           cuts = "3, 3.5, 4",
+                           values =  "0, 0.33, 0.66, 1")),
+         ., cRUL = (recode(RUL,
+                           cuts = "2, 3, 4",
+                           values =  "0, 0.33, 0.66, 1")),
+         ., cTRA = (recode(TRA,
+                           cuts = "2, 3, 4",
+                           values =  "0, 0.33, 0.66, 1")),
+         ., cCEN = (recode(CEN,
+                           cuts = "2, 3, 4",
+                           values =  "0, 0.33, 0.66, 1")),
+         ., cMON = (recode(MON,
+                           cuts = "2, 3, 4",
+                           values =  "0, 0.33, 0.66, 1")),
+         ., cGOA = (recode(GOA,
+                           cuts = "2, 3, 4",
+                           values =  "0, 0.33, 0.66, 1")),
+         ., cSTR = (recode(STR, 
+                           cuts = "2, 3, 4", 
+                           values =  "0, 0.33, 0.66, 1")),
+         ., cACC = (recode(ACC,
+                           cuts = "2, 3, 4",
+                           values =  "0, 0.33, 0.66, 1")),
+         ., cFOC = (recode(FOC,
+                           cuts = "3, 3.5, 4",
+                           values =  "0, 0.33, 0.66, 1")),
+         ., cLEG = (recode(LEG,
+                           cuts = "2, 3, 4",
+                           values =  "0, 0.33, 0.66, 1")),
+         ., cKNO = (recode(KNO,
+                           cuts = "2, 3, 4",
+                           values =  "0, 0.33, 0.66, 1")),
+         ., cEFF = (recode(EFF,
+                           cuts = "2, 3, 4",
+                           values =  "0, 0.33, 0.66, 1")),
+         ., cCHA = (recode(CHA,
+                           cuts = "2, 3, 4",
+                           values =  "0, 0.33, 0.66, 1")))
+cases_CS_fs_an <- cases_CS_fs %>%
+  select(cPOW:cCHA)
+#Check for necessity for outcome
+superSubset(cases_CS_fs_an, 
+            outcome = "cCHA", 
+            neg.out = FALSE,
+            relation = "necessity",
+            incl.cut = 0.90,
+            ron.cut = 0.50)
+#Run analysis for all conditions.
+ttCS <- truthTable(cases_CS_fs_an, outcome = "cACC",
+                   conditions = "cPOW, cRUL, cTRA, cCEN, cGOA, cMON",
+                   incl.cut = 0.80,
+                   show.cases = TRUE,
+                   dcc = TRUE,
+                   sort.by = "OUT, n")
+ttCS
+#Compute minimization of truth table and print conservative solution:
+solcs_con <- minimize(ttCS, 
+                      details = TRUE)
+solcs_con
+#Compute parsimonious solution and print results:
+solcs_par <- minimize(ttCS,
+                      details = TRUE,
+                      include = "?",
+                      show.cases = TRUE)
+solcs_par
+#Compute intermediary solution and print results:
+solcs_int <- minimize(ttCS,
+                      details = TRUE,
+                      include = "?",
+                      show.cases = TRUE,
+                      dir.exp = "cPOW")
+solcs_int
