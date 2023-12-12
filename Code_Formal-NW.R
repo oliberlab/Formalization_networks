@@ -517,14 +517,14 @@ cases_CS_fs_an <- cases_CS_fs %>%
   select(cPOW:cCHA)
 #Check for necessity for outcome
 superSubset(cases_CS_fs_an, 
-            outcome = "cCHA", 
+            outcome = "cLEG", 
             neg.out = FALSE,
             relation = "necessity",
             incl.cut = 0.90,
             ron.cut = 0.50)
 #Run analysis for all conditions.
 ttCS <- truthTable(cases_CS_fs_an, outcome = "cACC",
-                   conditions = "cPOW, cRUL, cTRA, cCEN, cGOA, cMON",
+                   conditions = "cRUL, cTRA, cCEN, cGOA, cMON",
                    incl.cut = 0.80,
                    show.cases = TRUE,
                    dcc = TRUE,
@@ -545,5 +545,5 @@ solcs_int <- minimize(ttCS,
                       details = TRUE,
                       include = "?",
                       show.cases = TRUE,
-                      dir.exp = "cPOW")
+                      dir.exp = "cRUL, cTRA, cCEN, cGOA, cMON")
 solcs_int
