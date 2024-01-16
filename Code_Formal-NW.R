@@ -465,13 +465,13 @@ cases_CS_fs <- cases_CS_fs %>%
                        Q51.2_End, Q51.3_End),
          ., CON = Q26_Middle,
          ., FOC = Q33_Middle,
-         ., LEG = Q58.1_End,
+         ., LEG = pmax (Q58.1_Middle, Q58.1_End),
          ., KNO = Q41_Middle,
          ., EFF = pmax(Q57.1_Middle, Q57.1_End, Q57.2_Middle, Q57.2_End,
                        Q57.3_Middle, Q57.3_End),
-         ., CAP = Q58.2_End,
-         ., SOC = Q58.3_End,
-         ., CHA = (CAP + LEG + SOC)/3)
+         ., CAP = pmax (Q58.1_Middle, Q58.1_End),
+         ., SOC = pmax (Q58.1_Middle, Q58.1_End),
+         ., CHA = (CAP + LEG + EFF)/3)
 #Calibrate Likert scores using recode. 
 cases_CS_fs <- cases_CS_fs %>%
   mutate(., cPOW = (recode(POW,
@@ -517,15 +517,15 @@ cases_CS_fs_an <- cases_CS_fs %>%
   select(cPOW:cCHA)
 #Check for necessity for outcome
 superSubset(cases_CS_fs_an, 
-            outcome = "cLEG", 
+            outcome = "cEFF", 
             neg.out = FALSE,
             relation = "necessity",
             incl.cut = 0.90,
             ron.cut = 0.50)
 #Run analysis for all conditions.
 ttCS <- truthTable(cases_CS_fs_an, outcome = "cACC",
-                   conditions = "cRUL, cTRA, cCEN, cGOA, cMON",
-                   incl.cut = 0.80,
+                   conditions = "cRUL, cCEN, cGOA, cMON, cSTR",
+                   incl.cut = 0.82,
                    show.cases = TRUE,
                    dcc = TRUE,
                    sort.by = "OUT, n")
@@ -545,5 +545,5 @@ solcs_int <- minimize(ttCS,
                       details = TRUE,
                       include = "?",
                       show.cases = TRUE,
-                      dir.exp = "cRUL, cTRA, cCEN, cGOA, cMON")
+                      dir.exp = "cRUL, cCEN, cGOA, cMON, cSTR")
 solcs_int
