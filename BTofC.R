@@ -1,4 +1,8 @@
-#Study for all, behavioral theory of CSP
+library(tidyverse)
+library(QCA)
+library(venn)
+#Downlad file from server: https://surfdrive.surf.nl/files/index.php/s/cF9fBZ5uwlzYq7W
+#Replace path with path in your directory. 
 path <- "/Users/olivier/Library/CloudStorage/SynologyDrive-Olli/Job/Coding/Projects/GitHub/Formalization_networks/data/AllCases20220605.csv"
 cases_all <- read.csv(path, sep=";")
 #Delete superfluous information
@@ -8,8 +12,9 @@ cases_BTC <- cases_all %>%
          -Institution,
          -e.mail.address.first.author)
 #Delete cases with missing data on central items
-cases_BTC<-subset(cases_BTC, 
-                 Q24_DK != "Yes" &
+cases_BTC<-subset(cases_BTC,
+                    Q19_DK != "Yes" &
+                    Q24_DK != "Yes" &
                    Q25_DK != "Yes" &
                    Q35_DK != "Yes" &
                    Q40_DK != "Yes" &
@@ -28,7 +33,8 @@ cases_BTC[cases_CS == "Yes"] <- NA
 cases_BTC[is.na(cases_BTC)] <- 5
 #Create sets using extant items.
 cases_BTC_fs <- subset(cases_BTC, 
-                      select = c(Q24_Start, Q24_Middle, Q24_End,
+                      select = c(Q19_Start, Q19_Middle, Q19_End,
+                                 Q24_Start, Q24_Middle, Q24_End,
                                  Q25_Start, Q25_Middle, Q25_End,
                                  Q35_Start, Q35_Middle, Q35_End,
                                  Q40_Start, Q40_Middle, Q40_End,
@@ -45,20 +51,23 @@ cases_BTC_fs <- subset(cases_BTC,
 cases_BTC_fs <- cases_BTC_fs %>% mutate_all(as.character)
 cases_BTC_fs <- cases_BTC_fs %>% mutate_all(as.numeric)
 cases_BTC_fs <- cases_BTC_fs %>%
-  mutate(., QRC = (Q42_Middle + Q48_Middle)/2,
+  mutate(., EXP = (Q19_Start),
+         ., QRC = (Q42_Middle + Q48_Middle)/2,
          ., UNA = (Q24_Middle + Q25_Middle)/2,
          ., PBS = (Q40_Middle + Q50_Middle)/2,
          ., ORL = (Q43_Middle + Q35_Middle)/2,
-         ., LEG = pmax (Q58.1_Middle, Q58.1_End),
          ., EFF = pmax(Q57.1_Middle, Q57.1_End, Q57.2_Middle, Q57.2_End,
                        Q57.3_Middle, Q57.3_End),
          ., CAP = pmax (Q58.1_Middle, Q58.1_End),
          ., SOC = pmax (Q58.1_Middle, Q58.1_End),
-         ., CHA = (CAP + LEG)/2)
+         ., CHA = (EFF + SOC + CAP)/3)
 #Calibrate Likert scores using recode. 
 cases_BTC_fs <- cases_BTC_fs %>%
-  mutate(., cQRC = (recode(QRC,
-                           cuts = "3, 3.5, 4",
+  mutate(., cEXP = (recode(EXP,
+                           cuts = "2, 3, 4",
+                           values =  "0, 0.33, 0.66, 1")),
+         ., cQRC = (recode(QRC,
+                           cuts = "2, 3, 4",
                            values =  "0, 0.33, 0.66, 1")),
          ., cUNA = (recode(UNA,
                            cuts = "2, 3, 4",
@@ -69,17 +78,11 @@ cases_BTC_fs <- cases_BTC_fs %>%
          ., cORL = (recode(ORL,
                            cuts = "2, 3, 4",
                            values =  "0, 0.33, 0.66, 1")),
-         ., cLEG = (recode(LEG,
-                           cuts = "2, 3, 4",
-                           values =  "0, 0.33, 0.66, 1")),
-         ., cEFF = (recode(EFF,
-                           cuts = "2, 3, 4",
-                           values =  "0, 0.33, 0.66, 1")),
          ., cCHA = (recode(CHA,
                            cuts = "2, 3, 4",
                            values =  "0, 0.33, 0.66, 1")))
 cases_BTC_fs_an <- cases_BTC_fs %>%
-  select(cQRC:cCHA)
+  select(cEXP:cCHA)
 #Check for necessity for outcome
 superSubset(cases_BTC_fs_an, 
             outcome = "cCHA", 
@@ -89,11 +92,12 @@ superSubset(cases_BTC_fs_an,
             ron.cut = 0.50)
 #Run analysis for all conditions.
 ttBTC <- truthTable(cases_BTC_fs_an, outcome = "cCHA",
-                   conditions = "cQRC, cUNA, cPBS, cORL",
-                   incl.cut = 0.90,
+                   conditions = "cEXP, cQRC, cUNA, cPBS, cORL",
+                   incl.cut = 0.80,
                    show.cases = TRUE,
                    dcc = TRUE,
-                   sort.by = "OUT, n")
+                   sort.by = "OUT, incl, n")
+#Visualize truthtable and look at case distribution per combination
 ttBTC
 #Compute minimization of truth table and print conservative solution:
 solbt_con <- minimize(ttBTC, 
@@ -112,14 +116,24 @@ solbt_int <- minimize(ttBTC,
                       show.cases = TRUE,
                       dir.exp = "cQRC, cUNA, cPBS, cORL")
 solbt_int
+#Visualize Venn diagram for Truthtable
+venn(ttBTC, counts = TRUE, opacity = ttBTC$tt$incl)
+#Check for necessity for negative outcome
+superSubset(cases_BTC_fs_an, 
+            outcome = "~cCHA", 
+            neg.out = FALSE,
+            relation = "necessity",
+            incl.cut = 0.90,
+            ron.cut = 0.50)
 #Run analysis for all conditions and negative outcome.
 ttNoBT <- truthTable(cases_BTC_fs_an, outcome = "~cCHA",
-                     conditions = "cQRC, cUNA, cPBS, cORL",
-                     incl.cut = 0.80,
+                     conditions = "cEXP, cQRC, cUNA, cPBS, cORL",
+                     incl.cut = 0.6,
                      show.cases = TRUE,
                      dcc = TRUE,
-                     sort.by = "OUT, n")
-ttNoCS
+                     sort.by = "OUT, incl, n")
+#Visualize truthtable and verify breaking point for threshold (here about 0.6)
+ttNoBT
 #Compute minimization of truth table and print conservative solution:
 solno_con <- minimize(ttNoBT, 
                       details = TRUE)
@@ -135,5 +149,5 @@ solno_int <- minimize(ttNoBT,
                       details = TRUE,
                       include = "?",
                       show.cases = TRUE,
-                      dir.exp = "cQRC, cUNA, cPBS, cORL")
+                      dir.exp = "~cQRC, ~cUNA, ~cPBS, ~cORL")
 solno_int

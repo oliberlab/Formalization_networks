@@ -471,7 +471,7 @@ cases_CS_fs <- cases_CS_fs %>%
                        Q57.3_Middle, Q57.3_End),
          ., CAP = pmax (Q58.1_Middle, Q58.1_End),
          ., SOC = pmax (Q58.1_Middle, Q58.1_End),
-         ., CHA = (CAP + LEG + EFF)/3)
+         ., CHA = (CAP + LEG)/2)
 #Calibrate Likert scores using recode. 
 cases_CS_fs <- cases_CS_fs %>%
   mutate(., cPOW = (recode(POW,
@@ -523,9 +523,9 @@ superSubset(cases_CS_fs_an,
             incl.cut = 0.90,
             ron.cut = 0.50)
 #Run analysis for all conditions.
-ttCS <- truthTable(cases_CS_fs_an, outcome = "cACC",
+ttCS <- truthTable(cases_CS_fs_an, outcome = "cCHA",
                    conditions = "cRUL, cCEN, cGOA, cMON, cSTR",
-                   incl.cut = 0.82,
+                   incl.cut = 0.80,
                    show.cases = TRUE,
                    dcc = TRUE,
                    sort.by = "OUT, n")
@@ -547,3 +547,28 @@ solcs_int <- minimize(ttCS,
                       show.cases = TRUE,
                       dir.exp = "cRUL, cCEN, cGOA, cMON, cSTR")
 solcs_int
+#Run analysis for all conditions and negative outcome.
+ttNoCS <- truthTable(cases_CS_fs_an, outcome = "~cACC",
+                     conditions = "cRUL, cCEN, cGOA, cMON, cSTR",
+                     incl.cut = 0.80,
+                     show.cases = TRUE,
+                     dcc = TRUE,
+                     sort.by = "OUT, n")
+ttNoCS
+#Compute minimization of truth table and print conservative solution:
+solno_con <- minimize(ttNoCS, 
+                      details = TRUE)
+solno_con
+#Compute parsimonious solution and print results:
+solno_par <- minimize(ttNoCS,
+                      details = TRUE,
+                      include = "?",
+                      show.cases = TRUE)
+solno_par
+#Compute intermediary solution and print results:
+solno_int <- minimize(ttNoCS,
+                      details = TRUE,
+                      include = "?",
+                      show.cases = TRUE,
+                      dir.exp = "cRUL, cCEN, cGOA, cMON, cSTR")
+solno_int
