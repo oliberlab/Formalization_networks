@@ -151,3 +151,14 @@ solno_int <- minimize(ttNoBT,
                       show.cases = TRUE,
                       dir.exp = "~cQRC, ~cUNA, ~cPBS, ~cORL")
 solno_int
+#Select only qualitative descriptions for further anlaysis
+cases_BTC_open <- cases_BTC %>%
+  select(Case.Name,
+         Q13,
+         Q21,
+         Q29,
+         Q37,
+         Q47,
+         Q54,
+         Q61)
+cases_BTC_open[16, ]
